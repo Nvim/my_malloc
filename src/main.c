@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #define META_SIZE sizeof(s_Chunk)
@@ -12,10 +13,10 @@
 #define ALIGNMENT 8 // TODO: make portable
 #define ALIGN_8(x) (((x) + 7) & ~7)
 
-typedef struct {
+typedef struct s_Chunk {
   int size;
-  void *next;
-  void *prev;
+  struct s_Chunk *next;
+  struct s_Chunk *prev;
   int free;
 } s_Chunk;
 
@@ -63,16 +64,38 @@ s_Chunk *split_chunk(s_Chunk *chunk, size_t size) {
   return new;
 }
 
+void my_free(void *ptr) {
+  s_Chunk *c = (s_Chunk *)(ptr - META_SIZE);
+  if (!(base && c >= base && c <= last)) {
+    printf("my_free: Invalid pointer\n");
+    return;
+  }
+  c->free = 1;
+  s_Chunk *next = c->prev;
+  s_Chunk *prev = c->prev;
+  if (next->free) {
+    // coalesce with next 1st
+    c->size += next->size;
+    c->next = next->next;
+  }
+  if (prev->free) {
+    // coalesce with previous
+    prev->size += c->size;
+    prev->next = c->next;
+  }
+}
+
 void *my_malloc(size_t size) {
   size = ALIGN_8(size);
   s_Chunk *c = find_free_chunk(size);
   if (c == NULL) {
-    void *new = extend_heap(last, size);
+    printf("\n[LOG] extending heap..\n");
+    s_Chunk *new = extend_heap(last, size);
     last = new;
     if (base == NULL)
       base = new;
-    void *payload = new + META_SIZE;
-    return payload;
+    uint8_t *payload = (uint8_t *)new + META_SIZE;
+    return (void *)payload;
   }
   // TODO: split chunk if possible
   // if (c->size > size+META_SIZE+ALIGNMENT){
@@ -81,15 +104,31 @@ void *my_malloc(size_t size) {
   //   new->next = c+size;
   // }
   assert(c != NULL);
+  c->free = 0;
   return c;
+}
+
+void heap_dump() {
+  printf("*Heap Dump*\n");
+  if (base == NULL) {
+    printf("\tEmpty!\n");
+    return;
+  }
+  printf("\tBase address: %p\n", base);
+  s_Chunk *chunk = base;
+  int i = 0;
+  while (chunk != NULL) {
+    printf("*Chunk #%d:\nFree: %d, Size: %d, Adress: %p, Next: %p, Prev: %p \n",
+           i, chunk->free, chunk->size, chunk, chunk->next, chunk->prev);
+    chunk = chunk->next;
+    i++;
+  }
 }
 
 int main() {
   void *ptr = my_malloc(12);
-  assert(ptr != NULL);
-  printf("%p\n", ptr);
-  void *ptr2 = my_malloc(12);
-  assert(ptr2 != NULL);
-  printf("%p\n", ptr2);
+  void *ptr2 = my_malloc(20);
+  void *bigone = my_malloc(2000);
+  heap_dump();
   return EXIT_SUCCESS;
 }
