@@ -10,7 +10,7 @@ all: $(SRCS)
 	$(CC) $(CFLAGS) $(LINK_FLAGS) $(SRCS) -o main 
 
 debug: $(SRCS)
-	$(CC) $(CFLAGS) $(DEBUG_FLAGS) $(SRCS) -o main $(LINK_FLAGS)
+	$(CC) $(CFLAGS) $(DEBUG_FLAGS) $(SRCS) -o debug $(LINK_FLAGS)
 
 safe: $(SRCS)
 	$(CC) $(CFLAGS) $(EXTRA_FLAGS) $(SRCS) -o main $(LINK_FLAGS) 

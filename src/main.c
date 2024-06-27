@@ -15,9 +15,9 @@
 
 typedef struct s_Chunk {
   int size;
+  int free;
   struct s_Chunk *next;
   struct s_Chunk *prev;
-  int free;
 } s_Chunk;
 
 s_Chunk *base = NULL; // beginning of heap
@@ -27,9 +27,10 @@ s_Chunk *extend_heap(s_Chunk *last, size_t size) {
   s_Chunk *chunk = sbrk(size);
   chunk->size = size;
   chunk->next = NULL;
+  chunk->prev = NULL;
   chunk->free = 0;
   if (last) {
-    chunk->prev = last;
+    chunk->prev = last; // TODO debug this
     last->next = chunk;
   }
   return chunk;
@@ -59,26 +60,27 @@ s_Chunk *split_chunk(s_Chunk *chunk, size_t size) {
   new->size = size;
   new->prev = chunk;
   new->free = 1;
+  new->next = chunk->next;
   chunk->next = new;
 
   return new;
 }
 
 void my_free(void *ptr) {
-  s_Chunk *c = (s_Chunk *)(ptr - META_SIZE);
+  s_Chunk *c = (s_Chunk *)((uint8_t *)ptr - META_SIZE);
   if (!(base && c >= base && c <= last)) {
     printf("my_free: Invalid pointer\n");
     return;
   }
   c->free = 1;
-  s_Chunk *next = c->prev;
+  s_Chunk *next = c->next;
   s_Chunk *prev = c->prev;
-  if (next->free) {
+  if (next && next->free) {
     // coalesce with next 1st
     c->size += next->size;
     c->next = next->next;
   }
-  if (prev->free) {
+  if (prev && prev->free) {
     // coalesce with previous
     prev->size += c->size;
     prev->next = c->next;
@@ -87,10 +89,10 @@ void my_free(void *ptr) {
 
 void *my_malloc(size_t size) {
   size = ALIGN_8(size);
-  s_Chunk *c = find_free_chunk(size);
-  if (c == NULL) {
+  s_Chunk *new = find_free_chunk(size);
+  if (new == NULL) {
     printf("\n[LOG] extending heap..\n");
-    s_Chunk *new = extend_heap(last, size);
+    new = extend_heap(last, size);
     last = new;
     if (base == NULL)
       base = new;
@@ -103,9 +105,10 @@ void *my_malloc(size_t size) {
   //   c->next = new;
   //   new->next = c+size;
   // }
-  assert(c != NULL);
-  c->free = 0;
-  return c;
+  last = new;
+  new->free = 0;
+  uint8_t *payload = (uint8_t *)new + META_SIZE;
+  return (void *)payload;
 }
 
 void heap_dump() {
@@ -128,7 +131,8 @@ void heap_dump() {
 int main() {
   void *ptr = my_malloc(12);
   void *ptr2 = my_malloc(20);
-  void *bigone = my_malloc(2000);
+  // void *bigone = my_malloc(2000);
+  // my_free(bigone);
   heap_dump();
   return EXIT_SUCCESS;
 }

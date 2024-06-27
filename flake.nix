@@ -40,9 +40,11 @@
           packages.default = pkgs.hello;
           devShells.default = pkgs.mkShell {
             buildInputs = with pkgs; [
+              clang-tools_18
               bear
               gnumake
               criterion
+              gdb
             ];
           };
         };
