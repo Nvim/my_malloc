@@ -1,24 +1,4 @@
-#include <assert.h>
-#include <limits.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-
-#define META_SIZE sizeof(s_Chunk)
-
-// chunk's data is at least 8, to hold 2 ptrs: (TODO: make portable)
-#define MIN_PAYLOAD 8
-#define ALIGNMENT 8 // TODO: make portable
-#define ALIGN_8(x) (((x) + 7) & ~7)
-
-typedef struct s_Chunk {
-  int size;
-  int free;
-  struct s_Chunk *next;
-  struct s_Chunk *prev;
-} s_Chunk;
+#include "my_malloc.h"
 
 s_Chunk *base = NULL; // beginning of heap
 s_Chunk *last = NULL; // last chunk in heap
@@ -111,28 +91,24 @@ void *my_malloc(size_t size) {
   return (void *)payload;
 }
 
+void *get_base() { return base; }
+
+void *get_last() { return last; }
+
 void heap_dump() {
   printf("*Heap Dump*\n");
   if (base == NULL) {
     printf("\tEmpty!\n");
     return;
   }
-  printf("\tBase address: %p\n", base);
+  printf("\tBase address: %p\n", (void *)base);
   s_Chunk *chunk = base;
   int i = 0;
   while (chunk != NULL) {
     printf("*Chunk #%d:\nFree: %d, Size: %d, Adress: %p, Next: %p, Prev: %p \n",
-           i, chunk->free, chunk->size, chunk, chunk->next, chunk->prev);
+           i, chunk->free, chunk->size, (void *)chunk, (void *)chunk->next,
+           (void *)chunk->prev);
     chunk = chunk->next;
     i++;
   }
-}
-
-int main() {
-  void *ptr = my_malloc(12);
-  void *ptr2 = my_malloc(20);
-  // void *bigone = my_malloc(2000);
-  // my_free(bigone);
-  heap_dump();
-  return EXIT_SUCCESS;
 }
