@@ -21,22 +21,22 @@ tests: $(TEST_BINS)
 	for test in $(TEST_BINS) ; do ./$$test ; done
 
 lib: $(LIB)
-debug: $(LIB_DEBUG)
+# debug: $(LIB_DEBUG)
 
 # makes main library:
 $(LIB): $(OBJS)
-	$(CC) -shared -o $(LIB) $(OBJS)
+	$(CC) -shared -o $(LIB) $(OBJS) $(DEBUG_FLAGS)
 
 $(OBJS): $(SRCS)
-	$(CC) -c $(CFLAGS) $(SRCS) -o $(OBJS)
+	$(CC) -c $(CFLAGS) $(DEBUG_FLAGS) $(SRCS) -o $(OBJS)
 
 # same with debug symbols
-$(LIB_DEBUG): $(SRCS)
-	$(CC) -shared $(CFLAGS) $(DEBUG_FLAGS) $(SRCS) -o $(LIB_DEBUG)
+# $(LIB_DEBUG): $(SRCS)
+# 	$(CC) -shared $(CFLAGS) $(DEBUG_FLAGS) $(SRCS) -o $(LIB_DEBUG)
 
 # makes all tests from the tests/ folder
 %: tests/%.c $(LIB)
-	$(CC) $< $(LINK_FLAGS) -o $@
+	$(CC) $< $(DEBUG_FLAGS) $(LINK_FLAGS) -o $@
 
 clean: 
 	rm -rf *.o *.so $(TEST_BINS)

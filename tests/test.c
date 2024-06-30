@@ -5,11 +5,6 @@
 #include <stdlib.h>
 #include <time.h>
 
-void setup(size_t size, s_Chunk *ptr) {
-  void *p = my_malloc(size);
-  ptr = (s_Chunk *)((uint8_t *)ptr - META_SIZE);
-}
-
 // allocs a chunk and checks that attributes are valid
 Test(alloc, single) {
   size_t size = 17;
@@ -65,15 +60,18 @@ Test(alloc, alot) {
   cr_assert_not_null(chunk);
 
   s_Chunk *prev = NULL;
-  i = 0;
+  int j = 0;
   while (chunk->next != NULL) {
-    cr_assert_eq(chunk->size, ALIGN_8(sizes[i]), "Expected %lu, got: %d",
-                 ALIGN_8(sizes[i]), chunk->size);
-    cr_assert_eq(chunk->free, 0, "Expected 0, got: %d", chunk->free);
-    cr_assert_eq(chunk->prev, prev, "Expected %p, got: %p", (void *)chunk->prev,
-                 (void *)prev);
+    cr_expect_eq(chunk->size, (int)ALIGN_8(sizes[j]),
+                 "[%d] Expected %lu, got: %d (Requested: %d)", j,
+                 ALIGN_8(sizes[j]), chunk->size, (int)sizes[j]);
+    cr_assert_eq(chunk->free, 0, "[%d] Expected 0, got: %d", j, chunk->free);
+    cr_expect_eq(chunk->prev, prev, "[%d] Expected %p, got: %p", j,
+                 (void *)prev, (void *)chunk->prev);
     prev = chunk;
     chunk = chunk->next;
-    i++;
+    j++;
   }
+  // cr_expect_eq(j, NB_ALLOCS, "Expected %d, got: %d", NB_ALLOCS, j);
+  heap_dump();
 }

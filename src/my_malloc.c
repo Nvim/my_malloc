@@ -4,7 +4,14 @@ s_Chunk *base = NULL; // beginning of heap
 s_Chunk *last = NULL; // last chunk in heap
 
 s_Chunk *extend_heap(s_Chunk *last, size_t size) {
-  s_Chunk *chunk = sbrk(size);
+  s_Chunk *chunk = sbrk(0);
+  // if ((void *)((uint8_t *)last + last->size + META_SIZE) != (void *)chunk) {
+  //   fprintf(stderr, "ERR: expected: %p, got: %p", (void *)chunk,
+  //           (void *)((uint8_t *)last + last->size + META_SIZE));
+  // }
+  if (sbrk(META_SIZE + size) == (void *)-1) {
+    return NULL;
+  }
   chunk->size = size;
   chunk->next = NULL;
   chunk->prev = NULL;
@@ -23,7 +30,7 @@ s_Chunk *find_free_chunk(size_t size) {
     return NULL;
   }
   s_Chunk *chunk = base;
-  while (chunk != NULL && !(chunk->size >= size && chunk->free == 1)) {
+  while (chunk != NULL && !(chunk->free) && (chunk->size < (int)size)) {
     chunk = chunk->next;
   }
   return chunk;
@@ -67,28 +74,34 @@ void my_free(void *ptr) {
   }
 }
 
+void *get_payload(s_Chunk *chunk) {
+  return (void *)((uint8_t *)chunk + META_SIZE);
+}
+
 void *my_malloc(size_t size) {
   size = ALIGN_8(size);
   s_Chunk *new = find_free_chunk(size);
   if (new == NULL) {
-    printf("\n[LOG] extending heap..\n");
     new = extend_heap(last, size);
     last = new;
-    if (base == NULL)
+    if (base == NULL) {
       base = new;
+    }
+    return get_payload(new);
+  } else {
+
+    // TODO: split chunk if possible
+    // if (c->size > size+META_SIZE+ALIGNMENT){
+    //   s_Chunk *new = split_chunk(c, size);
+    //   c->next = new;
+    //   new->next = c+size;
+    // }
+    printf("You shouldn't see this (%zu)\n", size);
+    last = new;
+    new->free = 0;
     uint8_t *payload = (uint8_t *)new + META_SIZE;
     return (void *)payload;
   }
-  // TODO: split chunk if possible
-  // if (c->size > size+META_SIZE+ALIGNMENT){
-  //   s_Chunk *new = split_chunk(c, size);
-  //   c->next = new;
-  //   new->next = c+size;
-  // }
-  last = new;
-  new->free = 0;
-  uint8_t *payload = (uint8_t *)new + META_SIZE;
-  return (void *)payload;
 }
 
 void *get_base() { return base; }
@@ -105,9 +118,10 @@ void heap_dump() {
   s_Chunk *chunk = base;
   int i = 0;
   while (chunk != NULL) {
-    printf("*Chunk #%d:\nFree: %d, Size: %d, Adress: %p, Next: %p, Prev: %p \n",
-           i, chunk->free, chunk->size, (void *)chunk, (void *)chunk->next,
-           (void *)chunk->prev);
+    printf("*Chunk #%d:\nFree: %d, Size: %d (%x), Adress: %p, Next: %p, Prev: "
+           "%p \n",
+           i, chunk->free, chunk->size, chunk->size, (void *)chunk,
+           (void *)chunk->next, (void *)chunk->prev);
     chunk = chunk->next;
     i++;
   }

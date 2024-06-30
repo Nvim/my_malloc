@@ -25,6 +25,7 @@ s_Chunk *extend_heap(s_Chunk *last, size_t size);
 s_Chunk *find_free_chunk(size_t size);
 s_Chunk *split_chunk(s_Chunk *chunk, size_t size);
 void my_free(void *ptr);
+void *get_payload(s_Chunk *chunk);
 void *my_malloc(size_t size);
 void *get_base();
 void *get_last();
