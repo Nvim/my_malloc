@@ -9,6 +9,7 @@
 Test(alloc, single) {
   size_t size = 17;
   size_t aligned_size = ALIGN_8(size);
+  cr_assert(aligned_size - size < 8);
 
   void *ptr = my_malloc(size);
   s_Chunk *chunk = (s_Chunk *)((uint8_t *)ptr - META_SIZE);
@@ -45,7 +46,7 @@ Test(alloc, multiple) {
 }
 
 Test(alloc, alot) {
-#define NB_ALLOCS 4
+#define NB_ALLOCS 15
   size_t sizes[NB_ALLOCS];
   srand(time(0));
   void *ptr;
@@ -72,6 +73,6 @@ Test(alloc, alot) {
     chunk = chunk->next;
     j++;
   }
-  // cr_expect_eq(j, NB_ALLOCS, "Expected %d, got: %d", NB_ALLOCS, j);
+  cr_expect_eq(j, NB_ALLOCS - 1, "Expected %d, got: %d", NB_ALLOCS - 1, j);
   heap_dump();
 }

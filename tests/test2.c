@@ -3,6 +3,7 @@
 #include <time.h>
 
 int main() {
+  printf("- Program break: %p", sbrk(0));
   size_t size = 17;
 #define NB_ALLOCS 4
   size_t sizes[NB_ALLOCS];
@@ -12,6 +13,9 @@ int main() {
   for (i = 0; i < NB_ALLOCS; i++) {
     size_t size = (rand() % 256) + 1;
     sizes[i] = size;
+    printf(
+        "* Alloc #%d - Requested size: %lu (%zx) - Aligned size: %lu (%zx)\n",
+        i, size, size, ALIGN_8(size), ALIGN_8(size));
     ptr = my_malloc(size);
   }
 
