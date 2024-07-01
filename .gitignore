@@ -1,3 +1,6 @@
-main
 compile_commands.json
 .cache/**/*
+**/*/.so
+*.so
+**/*/.o
+*.o

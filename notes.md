@@ -3,23 +3,23 @@
 - Chunk/Block: piece of memory allocated by malloc
 - Payload: data part of the chunk (malloc returns a void ptr to this)
 - Header/Footer: structs present at the beginning/end of each chunk containing
-metadata
+  metadata
 
 # design
 
 ## Headers
 
 - Header for metadata at the beginning of each chunk
-- Size needs to be aligned 
+- Size needs to be aligned
 - Can hold a next and a prev ptr
 - Can instead hold only block size, and we go to next by adding the bytes
 
 ### Layout option #1
 
-- size (int):    4 bytes
-- next (void *): 8 bytes
-- prev (void *): 8 bytes
-- free (int):    4 bytes
+- size (int): 4 bytes
+- next (void \*): 8 bytes
+- prev (void \*): 8 bytes
+- free (int): 4 bytes
 
 => total = 24 bytes -> aligned
 
@@ -41,13 +41,14 @@ With the following assumptions:
 - Eventual padding is added at the end of payload
 - The value of "Size" in head/foot is the size of the whole block, not payload
 
-The header is duplicated => 2*4 bytes = 8 bytes => aligned.
-Since we know that size is aligned, it's always a multiple of 8. So the 
+The header is duplicated => 2\*4 bytes = 8 bytes => aligned.
+Since we know that size is aligned, it's always a multiple of 8. So the
 first 3 bits of size are always 0 -> no need to check them -> we can use
 them for other purposes.
 The free bit flag is stored here, and we retrieve it with bitmask.
 
 No need to hold a reference to next/prev, we can compute them:
+
 - Next: beginning of block + size
 - Prev: beginning of block - 4 bytes will give us it's footer
 
@@ -60,7 +61,7 @@ I'll go with the simplest: first-fit, but options exit:
 - 1st-fit: it's in the name
 - best-fit: O(n) over the whole heap to find the closest size to the requested
 - next-fit: 1st fit, but start searching from the last allocated instead of
-from the start
+  from the start
 
 ## Freeing
 
@@ -69,20 +70,23 @@ There are 2 main issues:
 ### Pointer manipulation
 
 Problem:
+
 - Checking if the provided ptr comes from 'malloc'
 - Finding the block corresponding to the given ptr
 
 Solutions to avoid O(n)-ing the whole list:
+
 - Maintain a free-list which contains ptrs to free chunks only
 - 'Hide' the free-list in the free chunks' payload -> 1 ptr to next free, 1 ptr
-to previous free = 8 bytes (payload needs to be >= 8 bytes)
+  to previous free = 8 bytes (payload needs to be >= 8 bytes)
 
 Using the 2nd option would mean:
+
 - Setting a MIN_ALLOC_SIZE constant preventing user from allocating less than 8
-bytes (dumb).
+  bytes (dumb).
 - Always allocating a payload of >= 8 bytes, and padding it if needed. A
-malloc(1) call would use __24+8 = 32__ _(layout #1)_, or __8+8 = 16__ _(layout
-#2)_ (dumb, but less)
+  malloc(1) call would use **24+8 = 32** _(layout #1)_, or **8+8 = 16** _(layout
+  #2)_ (dumb, but less)
 
 ### Coalescense
 
@@ -93,7 +97,7 @@ malloc(1) call would use __24+8 = 32__ _(layout #1)_, or __8+8 = 16__ _(layout
 
 ## Alloc syscalls
 
-brk/sbrk look easier than mmap/munmap, I don't really understand the point 
+brk/sbrk look easier than mmap/munmap, I don't really understand the point
 of mmap.
 
 # My implementation
@@ -107,6 +111,11 @@ of mmap.
 - coalesce on every free
 - pointer validation (before freeing): O(n) for now
 - brk/sbrk to add and remove space
+
+## Important
+
+- Chunk size attribute counts meta + payload
+- When a size is supplied as a param, it's only payload's
 
 ## Small trick to allocate structs without memory allocator
 
@@ -145,8 +154,6 @@ Just fill the fields and it works
 
 - Align requested size
 - If 1st time: extend heap and return new
-- Call find_free_chunk  
+- Call find_free_chunk
 - If found, try to split it, mark it as used and return it
 - If not found, extend heap and return new
-
-
