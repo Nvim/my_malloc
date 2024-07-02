@@ -102,13 +102,17 @@ void my_free(void *ptr) {
   s_Chunk *prev = c->prev;
   if (next && next->free) {
     // coalesce with next 1st
-    c->size += next->size;
+    c->size += next->size + META_SIZE;
     c->next = next->next;
+    if (c->next)
+      c->next->prev = c;
   }
   if (prev && prev->free) {
     // coalesce with previous
-    prev->size += c->size;
+    prev->size += c->size + META_SIZE;
     prev->next = c->next;
+    if (prev->next)
+      prev->next->prev = prev;
   }
 }
 
@@ -128,10 +132,11 @@ void heap_dump() {
   s_Chunk *chunk = base;
   int i = 0;
   while (chunk != NULL) {
-    printf("*Chunk #%d:\nFree: %d, Size: %d (%x), Adress: %p, Next: %p, Prev: "
-           "%p \n",
-           i, chunk->free, chunk->size, chunk->size, (void *)chunk,
-           (void *)chunk->next, (void *)chunk->prev);
+    printf(
+        "*Chunk #%d:\nFree: %d, Size: %d (0x%x), Adress: %p, Next: %p, Prev: "
+        "%p \n",
+        i, chunk->free, chunk->size, chunk->size, (void *)chunk,
+        (void *)chunk->next, (void *)chunk->prev);
     chunk = chunk->next;
     i++;
   }
