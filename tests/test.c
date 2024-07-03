@@ -152,5 +152,14 @@ Test(free, coalesce) {
                (void *)chunk->prev);
 
   printf("- Freed Chuk #1 and #2\n\n");
+
+  heap_dump();
+
+  printf("\n- Trying to allocate a new big chunk ...\n");
+
+  ptr = my_malloc(260); // will leave 28
+
+  ptr = my_malloc(24); // should fit new chunk
+
   heap_dump();
 }

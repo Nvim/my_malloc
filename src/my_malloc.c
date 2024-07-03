@@ -35,7 +35,7 @@ s_Chunk *extend_heap(s_Chunk *last, size_t size) {
  */
 s_Chunk *find_free_chunk(s_Chunk **last, size_t size) {
   s_Chunk *chunk = base;
-  while (chunk && (!(chunk->free) || (chunk->size > (int)size))) {
+  while (chunk && (!(chunk->free) || (chunk->size < (int)size))) {
     *last = chunk;
     chunk = chunk->next;
   }
@@ -51,15 +51,17 @@ s_Chunk *find_free_chunk(s_Chunk **last, size_t size) {
  * @return returns ptr to new chunk.
  */
 s_Chunk *split_chunk(s_Chunk *chunk, size_t size) {
-  if ((size + META_SIZE) >= (chunk->size - META_SIZE - MIN_PAYLOAD)) {
+  if (chunk->size < (int)(size + META_SIZE + MIN_PAYLOAD)) {
     return NULL;
   }
-  s_Chunk *new = chunk + size + META_SIZE;
-  new->size = size;
+  int new_size = chunk->size - size - META_SIZE; // size of new chunk's payload
+  s_Chunk *new = (s_Chunk *)((uint8_t *)chunk + size + META_SIZE);
+  new->size = new_size;
   new->prev = chunk;
   new->free = 1;
   new->next = chunk->next;
   chunk->next = new;
+  chunk->size = size;
 
   return new;
 }
@@ -78,6 +80,13 @@ void *my_malloc(size_t size) {
     new = find_free_chunk(&last, size);
     if (new) {
       // TODO: Try to split the chunk
+      printf("[LOG] Alloc of size %zu - Using an existing chunk of size: %d\n",
+             size, new->size);
+      if (split_chunk(new, size)) {
+        printf(
+            "[LOG] Alloc of size %zu - Chunk has been split in sizes: %d, %d\n",
+            size, new->size, new->next->size);
+      }
       new->free = 0;
     } else { // Extend
       new = extend_heap(last, size);
